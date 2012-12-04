@@ -38,10 +38,10 @@ genkernel_opts          --loglevel=5
 #systemmap_binary        $(pwd)/kbin/System.map-genkernel-${arch}-3.2.1-gentoo-r2
 
 timezone                UTC
-rootpw                  a
+rootpw                  4th
 bootloader              grub
 keymap	                us # be-latin1 fr
-hostname                gentoo
+hostname                blue-dream
 extra_packages          dhcpcd syslog-ng vim openssh
 
 rcadd                   sshd       default
