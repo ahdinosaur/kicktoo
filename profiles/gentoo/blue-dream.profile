@@ -10,33 +10,43 @@ mountfs /dev/sda1 ext2 /boot
 mountfs /dev/sda2 swap
 mountfs /dev/sda3 ext4 / noatime
 
+# retrieve latest autobuild stage version for stage_uri
 if [ "${arch}" == "x86" ]; then
-    stage_uri               http://ftp.osuosl.org/pub/funtoo/funtoo-stable/x86-32bit/$(uname -m)/stage3-latest.tar.xz
+    wget -q http://distfiles.gentoo.org/releases/${arch}/autobuilds/latest-stage3-$(uname -m).txt -O /tmp/stage3.version
 elif [ "${arch}" == "amd64" ]; then
-    stage_uri               http://ftp.osuosl.org/pub/funtoo/funtoo-stable/x86-64bit/generic_64/stage3-latest.tar.xz
-fi  
-tree_type   snapshot    http://ftp.osuosl.org/pub/funtoo/funtoo-stable/snapshots/portage-latest.tar.xz
+    wget -q http://distfiles.gentoo.org/releases/${arch}/autobuilds/latest-stage3-${arch}.txt -O /tmp/stage3.version
+fi
+latest_stage_version=$(cat /tmp/stage3.version | grep tar.bz2)
+
+stage_uri               http://distfiles.gentoo.org/releases/${arch}/autobuilds/${latest_stage_version}
+tree_type   snapshot    http://distfiles.gentoo.org/snapshots/portage-latest.tar.bz2
 
 # get kernel dotconfig from running kernel
 cat /proc/config.gz | gzip -d > /dotconfig
 # get rid of Gentoo official firmware .config..
 grep -v CONFIG_EXTRA_FIRMWARE /dotconfig > /dotconfig2 ; mv /dotconfig2 /dotconfig
 # ..and lzo compression
-grep -v LZO /dotconfig > /dotconfig2 ; mv /dotconfig2 /dotconfig
+grep -v LZO                   /dotconfig > /dotconfig2 ; mv /dotconfig2 /dotconfig
 
 kernel_config_file      /dotconfig
-kernel_sources          gentoo-sources
+kernel_sources	        gentoo-sources
 genkernel_opts          --loglevel=5
 
-timezone		UTC
-rootpw 			4th
-bootloader 		grub
-keymap			en # be-latin1 fr
-hostname		blue-dream
-extra_packages         vixie-cron syslog-ng openssh
-rcadd			vixie-cron default
-rcadd			syslog-ng default
-rcadd			sshd default
+# ship the binary kernel instead of compiling (faster)
+#kernel_binary           $(pwd)/kbin/kernel-genkernel-${arch}-3.2.1-gentoo-r2
+#initramfs_binary        $(pwd)/kbin/initramfs-genkernel-${arch}-3.2.1-gentoo-r2
+#systemmap_binary        $(pwd)/kbin/System.map-genkernel-${arch}-3.2.1-gentoo-r2
+
+timezone                UTC
+rootpw                  4th
+bootloader              grub
+keymap	                us # be-latin1 fr
+hostname                blue-dream
+extra_packages          dhcpcd syslog-ng openssh zsh git vim xorg-server slim awesome rxvt-unicode xmodmap x11-misc/xclip app-text/zathura firefox virtualbox
+
+rcadd                   syslog-ng  default
+rcadd			dhcpcd	   default
+rcadd                   sshd       default
 
 #############################################################################
 # 1. commented skip runsteps are actually running!                          #
@@ -118,28 +128,18 @@ rcadd			sshd default
 # pre_unpack_repo_tree() {
 # }
 # skip unpack_repo_tree
-post_unpack_repo_tree() {
-    # git style Funtoo portage
-    spawn_chroot "cd /usr/portage && git checkout funtoo.org" || die "could not checkout funtoo git repo"
+# post_unpack_repo_tree() {
 }
 
 # pre_copy_kernel() {
 # }
 # skip copy_kernel
-# post_copy_kernel() {
-# }
-
-# pre_install_kernel_builder() {
-# }
-# skip install_kernel_builder
-# post_install_kernel_builder() {
-# }
-
-# pre_install_initramfs_builder() {
-# }
-# skip install_initramfs_builder
-# post_install_initramfs_builder() {
-# }
+post_copy_kernel() {
+	git clone https://github.com/ahdinosaur/blue-dream.git
+	cd blue-dream
+	./update
+	cd ..
+}
 
 # pre_build_kernel() {
 # }
@@ -186,15 +186,12 @@ post_unpack_repo_tree() {
 # pre_install_bootloader() {
 # }
 # skip install_bootloader
-post_install_bootloader() {
-    # $(echo ${device} | cut -c1-8) is like /dev/sdx
-    spawn_chroot "grub-install $(echo ${device} | cut -c1-8)" || die "cannot grub-install $(echo ${device} | cut -c1-8)"
-    spawn_chroot "boot-update"                                || die "boot-update failed"
-}
+# post_install_bootloader() {
+# }
 
 # pre_configure_bootloader() {
 # }
-skip configure_bootloader
+# skip configure_bootloader
 # post_configure_bootloader() {
 # }
 
@@ -207,11 +204,15 @@ skip configure_bootloader
 # pre_add_and_remove_services() {
 # }
 # skip add_and_remove_services
-# post_add_and_remove_services() {
-# }
+post_add_and_remove_services() {
+	echo "DISPLAYMANAGER=\"slim\"" >> /etc/conf.d/xdm
+	rc-update add xdm default
+}
 
 # pre_run_post_install_script() { 
 # }
 # skip run_post_install_script
-# post_run_post_install_script() {
-# }
+post_run_post_install_script() {
+	ADMIN="michael"
+	useradd -m -G users,wheel,usb,video,vboxusers -s /bin/zsh $ADMIN
+}
