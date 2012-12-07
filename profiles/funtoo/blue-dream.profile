@@ -94,11 +94,11 @@ post_mount_local_partitions() {
 }
 
 pre_mount_network_shares() {
+	echo "pre_mount_network_shares"
 	spawn_chroot "echo \"MAKEOPTS=\\"-j5\\"
 USE=\\"${USE} dbus nvidia X truetype 256-color xft\\"
 INPUT_DEVICES=\\"evdev keyboard mouse\\"
 VIDEO_CARDS=\\"nvidia\\"\" >> /etc/portage/make.conf"
-	echo "pre_mount_network_shares"
 }
 # skip mount_network_shares
 post_mount_network_shares() {
@@ -157,21 +157,20 @@ post_unpack_repo_tree() {
 
 pre_copy_kernel() {
 	echo "pre_copy_kernel"
-	spawn_chroot "echo \"sys-kernel/debian-sources symlink\" >> /etc/portage/package.use"
-	spawn_chroot "echo \"blacklist nouveau\" >> /etc/modprobe.d/blacklist.conf"
-	spawn_chroot "emerge debian-sources"
+#	spawn_chroot "echo \"sys-kernel/debian-sources symlink\" >> /etc/portage/package.use"
+#	spawn_chroot "echo \"blacklist nouveau\" >> /etc/modprobe.d/blacklist.conf"
+#	spawn_chroot "emerge debian-sources"
 }
-skip copy_kernel
+#skip copy_kernel
 post_copy_kernel() {
-	echo "post_copy_kernel"
+#	echo "post_copy_kernel"
 }
 
 pre_build_kernel() {
 	echo "pre_build_kernel"
-	spawn_chroot "cd /usr/src/linux && ./config-extract amd64 && genkernel all" || die "could not build debian kernel"
-	
+#	spawn_chroot "cd /usr/src/linux && ./config-extract amd64 && genkernel all" || die "could not build debian kernel"	
 }
-skip build_kernel
+#skip build_kernel
 post_build_kernel() {
 	echo "post_build_kernel"
 }
@@ -179,7 +178,7 @@ post_build_kernel() {
 pre_build_initramfs() {
 	echo "pre_build_initramfs"
 }
-skip build_initramfs
+#skip build_initramfs
 post_build_initramfs() {
 	echo "post_build_initramfs"
 }
@@ -230,12 +229,17 @@ pre_install_bootloader() {
 # skip install_bootloader
 post_install_bootloader() {
 	echo "post_install_bootloader"
+	mount -t proc none /mnt/chroot/proc
+	mount -o bind /dev /mnt/chroot/dev
+	# $(echo ${device} | cut -c1-8) is like /dev/sdx
+	spawn_chroot "grub-install $(echo ${device} | cut -c1-8)" || die "cannot grub-install $(echo ${device} | cut -c1-8)"
+	spawn_chroot "boot-update" || die "boot-update failed"
 }
 
 pre_configure_bootloader() {
 	echo "pre_configure_bootloader"
 }
-# skip configure_bootloader
+skip configure_bootloader
 post_configure_bootloader() {
 	echo "post_configure_bootloader"
 }
