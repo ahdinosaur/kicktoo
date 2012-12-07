@@ -94,6 +94,10 @@ post_mount_local_partitions() {
 }
 
 pre_mount_network_shares() {
+	spawn_chroot "echo \"MAKEOPTS=\\"-j5\\"
+USE=\\"${USE} dbus nvidia X truetype 256-color xft\\"
+INPUT_DEVICES=\\"evdev keyboard mouse\\"
+VIDEO_CARDS=\\"nvidia\\"\" >> /etc/portage/make.conf"
 	echo "pre_mount_network_shares"
 }
 # skip mount_network_shares
@@ -153,17 +157,21 @@ post_unpack_repo_tree() {
 
 pre_copy_kernel() {
 	echo "pre_copy_kernel"
+	spawn_chroot "echo \"sys-kernel/debian-sources symlink\" >> /etc/portage/package.use"
+	spawn_chroot "echo \"blacklist nouveau\" >> /etc/modprobe.d/blacklist.conf"
+	spawn_chroot "emerge debian-sources"
 }
-# skip copy_kernel
+skip copy_kernel
 post_copy_kernel() {
 	echo "post_copy_kernel"
 }
 
 pre_build_kernel() {
 	echo "pre_build_kernel"
-	spawn_chroot "cd /root/ && wget https://github.com/ahdinosaur/blue-dream/archives/master.zip && unzip master.zip && cd blue-dream-master && ./update" || die "could not get blue-dream's configs"
+	spawn_chroot "cd /usr/src/linux && ./config-extract amd64 && genkernel all" || die "could not build debian kernel"
+	
 }
-# skip build_kernel
+skip build_kernel
 post_build_kernel() {
 	echo "post_build_kernel"
 }
@@ -171,7 +179,7 @@ post_build_kernel() {
 pre_build_initramfs() {
 	echo "pre_build_initramfs"
 }
-# skip build_initramfs
+skip build_initramfs
 post_build_initramfs() {
 	echo "post_build_initramfs"
 }
