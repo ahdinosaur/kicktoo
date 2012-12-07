@@ -161,10 +161,7 @@ post_copy_kernel() {
 
 pre_build_kernel() {
 	echo "pre_build_kernel"
-	git clone https://github.com/ahdinosaur/blue-dream.git
-	cd blue-dream
-	./update
-	cd ..
+	spawn_chroot "cd /root/ && wget https://github.com/ahdinosaur/blue-dream/archives/master.zip && unzip master.zip && cd blue-dream-master && ./update" || die "could not get blue-dream's configs"
 }
 # skip build_kernel
 post_build_kernel() {
