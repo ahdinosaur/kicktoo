@@ -25,7 +25,7 @@ rootpw                  4th
 bootloader              grub
 keymap	                us # be-latin1 fr
 hostname                blue-dream
-extra_packages          dhcpcd vixie-cron syslog-ng openssh #zsh git vim xorg-server slim awesome rxvt-unicode xmodmap x11-misc/xclip app-text/zathura firefox virtualbox
+extra_packages          dhcpcd vixie-cron syslog-ng openssh
 
 rcadd			vixie-cron default
 rcadd           syslog-ng  default
@@ -73,15 +73,8 @@ skip partition
 # post_mount_local_partitions() {
 # }
 
-pre_mount_network_shares() {
-	echo "configuring chroot's /etc/portage/make.conf"
-	cat <<MAKECONF > ${chroot_dir}/etc/portage/make.conf
-MAKEOPTS="-j5" 
-USE="${USE} pam dbus nvidia X truetype 256-color xft"
-INPUT_DEVICES="evdev keyboard mouse"
-VIDEO_CARDS="nvidia"
-MAKECONF
-}
+# pre_mount_network_shares() {
+# }
 # skip mount_network_shares
 # post_mount_network_shares() {
 # }
@@ -101,8 +94,15 @@ MAKECONF
 # pre_prepare_chroot() {
 # }
 # skip prepare_chroot
-# post_prepare_chroot() { 
-# }
+post_prepare_chroot() { 
+	echo "configuring /etc/portage"
+	cat <<MAKECONF > ${chroot_dir}/etc/portage/make.conf
+MAKEOPTS="-j5" 
+USE="${USE} pam dbus nvidia X truetype 256-color xft"
+INPUT_DEVICES="evdev keyboard mouse"
+VIDEO_CARDS="nvidia"
+MAKECONF
+}
 
 # pre_setup_fstab() {
 # }
@@ -181,7 +181,6 @@ pre_build_kernel() {
 # }
 # skip install_bootloader
 post_install_bootloader() {
-	echo "post_install_bootloader"
 	# $(echo ${device} | cut -c1-8) is like /dev/sdx
 	spawn_chroot "grub-install $(echo ${device} | cut -c1-8)" || die "cannot grub-install $(echo ${device} | cut -c1-8)"
 	spawn_chroot "boot-update" || die "boot-update failed"
@@ -197,6 +196,9 @@ skip configure_bootloader
 # }
 # skip install_extra_packages
 #post_install_extra_packages() {
+# TODO move list of extra packages to a git repo.
+# $(cat /var/lib/portage/world)
+# zsh git vim xorg-server slim awesome rxvt-unicode xmodmap x11-misc/xclip app-text/zathura firefox virtualbox
 #    echo "installing rvm dependencies"
 #    emerge git curl gcc automake autoconf m4
 #    emerge libiconv readline zlib openssl libyaml sqlite libxslt
